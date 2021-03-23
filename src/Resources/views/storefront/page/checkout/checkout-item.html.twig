@@ -1,0 +1,32 @@
+{% sw_extends '@Storefront/storefront/page/checkout/checkout-item.html.twig' %}
+{% block page_checkout_item_container %}
+    {% block as_appointmentorder_is_appointment %}
+        <input type="checkbox"
+                title="Check for appointment order"
+                class=""
+                id="appointment"
+                form="isAppointment"
+                name="appointment"/>
+    {% endblock %}
+
+    {% block as_appointmentorder_appointment_date %}
+        <input type="date"
+                name="yourName"
+                id="yourID"
+                placeholder=""
+                data-datepicker="true" />
+    {% endblock %}
+    {{ parent() }}
+{% endblock %}
+
+{% block page_checkout_item_remove_submit %}
+{{ parent() }}
+    {% block as_appointmentorder_add_appointment %}
+        <button type="submit"
+                title="Another appointment order"
+                data-product-id="{{ lineItem.id }}"
+                class="btn btn-light btn-sm cart-item-remove-button">
+            {% sw_icon 'plus' style { 'size': 'sm' } %}
+        </button>
+    {% endblock %}
+{% endblock %}

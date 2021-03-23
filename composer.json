@@ -1,8 +1,17 @@
 {
-  "name": "swag/plugin-skeleton",
-  "description": "Skeleton plugin",
+  "name": "as/appointment",
+  "description": "Appointment orders",
   "type": "shopware-platform-plugin",
-  "license": "MIT",
+  "version": "v0.1.0",
+  "license": "proprietary",
+  "authors": [
+    {
+        "name": "SGS IT"
+    }
+  ],
+  "require": {
+    "as/mail-service": "*.*.*"
+  },
   "autoload": {
     "psr-4": {
       "ASAppointment\\": "src/"
@@ -11,8 +20,8 @@
   "extra": {
     "shopware-plugin-class": "ASAppointment\\ASAppointment",
     "label": {
-      "de-DE": "Skeleton plugin",
-      "en-GB": "Skeleton plugin"
+      "de-DE": "Terminbestellungen",
+      "en-GB": "Appointment orders"
     }
   }
 }
