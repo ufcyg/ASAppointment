@@ -2,7 +2,7 @@
   "name": "as/appointment",
   "description": "Appointment orders",
   "type": "shopware-platform-plugin",
-  "version": "v0.1.0",
+  "version": "v0.1.1",
   "license": "proprietary",
   "authors": [
     {
