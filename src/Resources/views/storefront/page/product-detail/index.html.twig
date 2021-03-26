@@ -1,0 +1,11 @@
+{% sw_extends '@Storefront/storefront/page/product-detail/index.html.twig' %}
+
+{# {% set asAppointmentOptions = {
+    text: "Are you not interested in this product?"
+} %}
+
+{% block page_product_detail_content %}
+    {{ parent() }}
+
+    <template data-a-s-appointment data-a-s-appointment-options='{{ asAppointmentOptions|json_encode }}'></template>
+{% endblock %} #}

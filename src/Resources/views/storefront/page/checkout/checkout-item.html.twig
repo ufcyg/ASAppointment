@@ -20,14 +20,10 @@
     {{ parent() }}
 {% endblock %}
 
-{% block page_checkout_item_remove_submit %}
-{{ parent() }}
-    {% block as_appointmentorder_add_appointment %}
-        <button type="submit"
-                title="Another appointment order"
-                data-product-id="{{ lineItem.id }}"
-                class="btn btn-light btn-sm cart-item-remove-button">
-            {% sw_icon 'plus' style { 'size': 'sm' } %}
-        </button>
-    {% endblock %}
+{% block page_checkout_item_remove %}
+    {{ parent() }}
+    <button title="Another appointment order"
+            class="btn btn-light btn-sm" href={{ path('frontend.checkout.clearCart') }}>
+        {% sw_icon 'plus' style { 'size': 'sm' } %}
+    </button>
 {% endblock %}

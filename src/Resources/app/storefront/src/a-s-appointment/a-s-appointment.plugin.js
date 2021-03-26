@@ -11,10 +11,27 @@ export default class ASAppointment extends Plugin {
     };
 
     init() {
+        const that = this;
         window.onscroll = function() {
             if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight) {
-                alert(this.options.text);
+                alert(that.options.text);
             }
         };
+        this.registerButton();
+    };
+
+    addLineItem = () => {
+        alert('henlo');
     }
+
+    registerButton() {
+        const elements = document.getElementsByClassName('as-appointment-duplicate-item');
+        [...elements].forEach((element) => element.addEventListener(
+            "click",  
+            this.addLineItem
+        ));
+    };
+
+
+
 }
