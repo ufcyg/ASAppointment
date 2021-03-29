@@ -14,7 +14,7 @@
         <input type="date"
                 name="yourName"
                 id="yourID"
-                placeholder=""
+                placeholder={{ "now"|date("m/d/Y") }}
                 data-datepicker="true" />
     {% endblock %}
     {{ parent() }}
@@ -22,8 +22,9 @@
 
 {% block page_checkout_item_remove %}
     {{ parent() }}
-    <button title="Another appointment order"
-            class="btn btn-light btn-sm" href={{ path('frontend.checkout.clearCart') }}>
-        {% sw_icon 'plus' style { 'size': 'sm' } %}
-    </button>
+    <div class "row col-md-2">
+        <a class="btn btn-light btn-sm" href="{{ path("frontend.checkout.addAppointmentLineItem", { 'lineItemId': lineItem.id} ) }}" >
+            +
+        </a>
+    </div>
 {% endblock %}

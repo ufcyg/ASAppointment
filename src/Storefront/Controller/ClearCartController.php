@@ -2,8 +2,11 @@
 
 namespace ASAppointment\Storefront\Controller;
 
+use Shopware\Core\Checkout\Cart\Cart;
+use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
+use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Storefront\Controller\StorefrontController;
 use Symfony\Component\Routing\Annotation\Route;
@@ -22,19 +25,28 @@ class ClearCartController extends StorefrontController
     }
 
     /**
-     * @Route("/cart/clear", name="frontend.checkout.clearCart", options={"seo"="false"}, methods={"GET"})
+     * @Route("/cart/add/appointment/{lineItemId}", name="frontend.checkout.addAppointmentLineItem", options={"seo"="false"}, methods={"GET"})
      */
-    public function clearCart(SalesChannelContext $context)
+    public function addAppointmentLineItem(Cart $cart, string $lineItemId, SalesChannelContext $context)
     {
-        $cart = $this->cartService->getCart($context->getToken(), $context);
+        $cartLineItems = $cart->getLineItems();
 
-        foreach($cart->getLineItems() as $lineItemID => $lineItem)
+        foreach($cartLineItems as $lineItemID => $currentlineItem)
         {
-            $var = $cart->getLineItems();
-            // $this->cartService->remove($cart, $lineItemID, $context);
-            $this->cartService->add($cart, $cart->getLineItems()->first(), $context);
+            if ($lineItemId == $lineItemID)
+            {
+                $productId = $currentlineItem->getReferencedId();
+
+                $lineItem = new LineItem(Uuid::randomHex(), "product", NULL, 1);
+                $lineItem->setGood(false);
+                $lineItem->setStackable(true);
+                $lineItem->setRemovable(true);
+                $lineItem->setReferencedId($productId);
+
+                $this->cartService->add($cart, $lineItem, $context);
+            }
         }
 
-        return $this->forwardToRoute('frontend.checkout.cart.page');
+        return $this->forwardToRoute('frontend.checkout.confirm.page');
     }
 }

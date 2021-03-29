@@ -27,7 +27,7 @@ export default class ASAppointment extends Plugin {
     registerButton() {
         const elements = document.getElementsByClassName('as-appointment-duplicate-item');
         [...elements].forEach((element) => element.addEventListener(
-            "click",  
+            "change",  
             this.addLineItem
         ));
     };
