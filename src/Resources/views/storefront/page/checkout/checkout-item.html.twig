@@ -6,14 +6,15 @@
                 title="Check for appointment order"
                 class=""
                 id="appointment"
-                form="isAppointment"
+                form="confirmOrderForm"
                 name="appointment"/>
     {% endblock %}
 
     {% block as_appointmentorder_appointment_date %}
         <input type="date"
-                name="yourName"
-                id="yourID"
+                name="appointmentDate-{{lineItem.id}}"
+                id="appointmentDate-{{lineItem.id}}"
+                form="confirmOrderForm"
                 placeholder={{ "now"|date("m/d/Y") }}
                 data-datepicker="true" />
     {% endblock %}
@@ -27,4 +28,12 @@
             +
         </a>
     </div>
+    {# {% block as_appointmentorder_appointment_date %}
+        <input type="date"
+                name="appointmentDate-{{lineItem.id}}"
+                id="appointmentDate-{{lineItem.id}}"
+                form="confirmOrderForm"
+                placeholder={{ "now"|date("m/d/Y") }}
+                data-datepicker="true" />
+    {% endblock %} #}
 {% endblock %}

@@ -12,5 +12,25 @@
                 <argument type="service" id="service_container"/>
             </call>
         </service>
+
+        <service id="ASAppointment\Subscriber\CartEventSubscriber">
+            <tag name="kernel.event_subscriber"/>
+            <tag name="shopware.event_subscriber"/>
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
+            <argument type="service" id="Shopware\Core\Checkout\Order\SalesChannel\OrderService" />
+            <argument type="service" id="request_stack" />
+            <call method="setContainer">
+                <argument type="service" id="service_container" />
+            </call>
+        </service>
+        <service id="ASAppointment\Subscriber\LineItemEventSubscriber">
+            <tag name="kernel.event_subscriber"/>
+            <tag name="shopware.event_subscriber"/>
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
+            <argument type="service" id="request_stack" />
+            <call method="setContainer">
+                <argument type="service" id="service_container" />
+            </call>
+        </service>
     </services>
 </container>

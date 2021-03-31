@@ -12,11 +12,11 @@ export default class ASAppointment extends Plugin {
 
     init() {
         const that = this;
-        window.onscroll = function() {
-            if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight) {
-                alert(that.options.text);
-            }
-        };
+        // window.onscroll = function() {
+        //     if ((window.innerHeight + window.pageYOffset) >= document.body.offsetHeight) {
+        //         alert(that.options.text);
+        //     }
+        // };
         this.registerButton();
     };
 
