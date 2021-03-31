@@ -53,54 +53,54 @@ class CartEventSubscriber implements EventSubscriberInterface
     }
     public function onOrderLineItemWrittenEvent(EntityWrittenEvent $event): void
     {
-        // /** @var EntityWriteResult $eventArray */
-        // $eventArray = $event->getWriteResults()[0];
+        
+        /** @var EntityWriteResult $eventArray */
+        $eventArray = $event->getWriteResults()[0];
 
-        // /** @var EntityRepositoryInterface $orderLineItemRepository */
-        // $orderLineItemRepository = $this->container->get('order_line_item.repository');
-        // // $criteria = new Criteria();
-        // // $criteria->addFilter(new EqualsFilter('id',$eventArray->getPrimaryKey()));
-        // // /** @var EntitySearchResult $searchResult */
-        // // $searchResult = $orderLineItemRepository->search($criteria,$event->getContext());
-        // if(array_key_exists('identifier',$eventArray->getPayload())){
-        //     $lineItemID = $eventArray->getPayload()['identifier'];
-        // }
-        // else{
-        //     return;
-        // }
-        // $request = $this->requestStack->getCurrentRequest();
-        // $content = $request->getContent();
+        /** @var EntityRepositoryInterface $orderLineItemRepository */
+        $orderLineItemRepository = $this->container->get('order_line_item.repository');
+        // $criteria = new Criteria();
+        // $criteria->addFilter(new EqualsFilter('id',$eventArray->getPrimaryKey()));
+        // /** @var EntitySearchResult $searchResult */
+        // $searchResult = $orderLineItemRepository->search($criteria,$event->getContext());
+        if(array_key_exists('identifier',$eventArray->getPayload())){
+            $lineItemID = $eventArray->getPayload()['identifier'];
+        }
+        else{
+            return;
+        }
+        $request = $this->requestStack->getCurrentRequest();
+        $content = $request->getContent();
+        if($content == '{}')
+            return;
+        $contentExploded = explode('&',$content);
 
-        // $contentExploded = explode('&',$content);
-
-        // foreach ($contentExploded as $contentExplodedItem) {
-        //     $contentExplodedItemExploded = explode('-', $contentExplodedItem);
+        foreach ($contentExploded as $contentExplodedItem) {
+            $appointmentID = '';
+            $appointmentDate = '';
+            $contentExplodedItemExploded = explode('-', $contentExplodedItem);
             
-        //     if ($contentExplodedItemExploded[0] === 'appointmentDate') {
-        //         $appointmentID = explode('=', $contentExplodedItemExploded[1]);
-        //         if ($appointmentID[1] == '') { // lineitem without date
-        //             continue;
-        //         } 
-        //         $appointmentID = $appointmentID[0];
-        //         if($appointmentID === $lineItemID)
-        //         {
-        //             $appointmentDate = explode('=', $contentExplodedItemExploded[1]);
-        //             $appointmentDate = $appointmentDate[1] . '-' . $contentExplodedItemExploded[2] . '-' . $contentExplodedItemExploded[3];
-        //             // // save appointment date to payload or w/e
-        //             // $payload = $eventArray->getPayload();
-        //             // $payloadInternal = $payload['payload'];
-        //             // $payloadInternal['customFields'] = []
-        //         }
+            if ($contentExplodedItemExploded[0] === 'appointmentDate') {
+                $appointmentID = explode('=', $contentExplodedItemExploded[1]);
+                if ($appointmentID[1] == '') { // lineitem without date
+                    continue;
+                } 
+                $appointmentID = $appointmentID[0];
+                if($appointmentID == '')
+                    continue;
+                if($appointmentID === $lineItemID)
+                {
+                    $appointmentDate = explode('=', $contentExplodedItemExploded[1]);
+                    $appointmentDate = $appointmentDate[1] . '-' . $contentExplodedItemExploded[2] . '-' . $contentExplodedItemExploded[3];
+                    // // save appointment date to payload or w/e
+                    // $orderId = $this->orderService->createOrder($customerId, $paymentMethodId, $this->context);
+                    $orderLineItemRepository->update([['id' => $eventArray->getPrimaryKey(),
+                    'customFields' => ['appointment_shipment_date' => $appointmentDate] ]],
+                    $event->getContext());
+                }
                 
-        //     }
-        // }
-        // if ($appointmentDate != null)
-        // {
-        //     // $orderId = $this->orderService->createOrder($customerId, $paymentMethodId, $this->context);
-        //     $orderLineItemRepository->update([['id' => $eventArray->getPrimaryKey(),
-        //                                     'customFields' => ['appointment_shipment_date' => $appointmentDate] ]],
-        //                                     $event->getContext());
-        // }           
+            }
+        }        
     }
 
     public function onCartConvertedEvent(CartConvertedEvent $event): void
