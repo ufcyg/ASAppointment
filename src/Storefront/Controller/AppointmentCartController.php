@@ -16,7 +16,7 @@ use Symfony\Component\Routing\Annotation\Route;
 /**
  * @RouteScope(scopes={"storefront"})
  */
-class ClearCartController extends StorefrontController
+class AppointmentCartController extends StorefrontController
 {
     /** @var CartService $cartService */
     private $cartService;
