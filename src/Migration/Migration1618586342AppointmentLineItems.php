@@ -14,18 +14,16 @@ class Migration1618586342AppointmentLineItems extends MigrationStep
 
     public function update(Connection $connection): void
     {
-        $connection->exec(""
-                // "CREATE TABLE IF NOT EXISTS `as_appointment_line_item` (
-                // `id`            BINARY(16) NOT NULL,
-                // `product_id`    VARCHAR(255) NOT NULL,
-                // `faulty`    INTEGER NOT NULL,
-                // `clarification`    INTEGER NOT NULL,
-                // `postprocessing`    INTEGER NOT NULL,
-                // `expired_mhd`    INTEGER NOT NULL,
-                // `other`    INTEGER NOT NULL,
-                // `created_at`    DATETIME(3),
-                // `updated_at`    DATETIME(3)
-                // ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
+        $connection->exec(
+                "CREATE TABLE IF NOT EXISTS `as_appointment_line_item` (
+                `id`                BINARY(16) NOT NULL,
+                `product_number`    VARCHAR(255) NOT NULL,
+                `amount`            INTEGER NOT NULL,
+                `appointment_date`  VARCHAR(255) NOT NULL,
+                `customer_id`       VARCHAR(255) NOT NULL,
+                `created_at`        DATETIME(3),
+                `updated_at`        DATETIME(3)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;"
                 );
     }
 

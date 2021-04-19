@@ -2,6 +2,7 @@
 
 namespace ASAppointment;
 
+use Doctrine\DBAL\Connection;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\Plugin;
@@ -94,7 +95,7 @@ class ASAppointment extends Plugin
 
         $connection = $this->container->get(Connection::class);
 
-        // $connection->executeUpdate('DROP TABLE IF EXISTS `repository_name`');
+        $connection->executeUpdate('DROP TABLE IF EXISTS `as_appointment_line_item`');
 
         parent::uninstall($context);
     }

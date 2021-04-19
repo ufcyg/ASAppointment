@@ -3,6 +3,7 @@
 namespace ASAppointment\Core\Content\AppointmentLineItem;
 
 use Shopware\Core\Framework\DataAbstractionLayer\EntityDefinition;
+use Shopware\Core\Framework\DataAbstractionLayer\Field\DateField;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\PrimaryKey;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\Flag\Required;
 use Shopware\Core\Framework\DataAbstractionLayer\Field\IdField;
@@ -31,14 +32,11 @@ class AppointmentLineItemDefinition extends EntityDefinition
     {
         return new FieldCollection(
             [
-                (new IdField('id', 'id'))->addFlags(new Required(), new PrimaryKey())
-                // new StringField('product_name', 'productName'),
-                // new StringField('product_number', 'productNumber'),
-                // new StringField('product_id', 'productId'),
-                // new IntField('faulty', 'faulty'),
-                // new IntField('clarification', 'clarification'),
-                // new IntField('postprocessing', 'postprocessing'),
-                // new IntField('other', 'other')
+                (new IdField('id', 'id'))->addFlags(new Required(), new PrimaryKey()),
+                new StringField('product_number', 'productNumber'),
+                new IntField('amount','amount'),
+                new DateField('appointment_date', 'appointmentDate'),
+                new StringField('customer_id', 'customerId')
             ]
         );
     }
