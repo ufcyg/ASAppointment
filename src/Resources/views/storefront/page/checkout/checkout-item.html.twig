@@ -12,10 +12,11 @@
 
     {% block as_appointmentorder_appointment_date %}
         <input type="date"
+                min="{{ "now"|date("Y-m-d") }}"
                 name="appointmentDate-{{lineItem.id}}"
                 id="appointmentDate-{{lineItem.id}}"
                 form="confirmOrderForm"
-                placeholder={{ "now"|date("m/d/Y") }}
+                placeholder="{{ "now"|date("m/d/Y") }}"
                 data-datepicker="true" />
     {% endblock %}
     {{ parent() }}
