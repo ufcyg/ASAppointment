@@ -36,5 +36,10 @@
         <service id="ASAppointment\Core\Content\AppointmentLineItem\AppointmentLineItemDefinition">
             <tag name="shopware.entity.definition" entity="as_appointment_line_item" />
         </service>
+
+        <service id="ASAppointment\ScheduledTask\AppointmentOrderTaskHandler">
+            <argument type="service" id="scheduled_task.repository" />
+            <tag name="messenger.message_handler" />
+        </service>
     </services>
 </container>
