@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/platform/master/src/Core/System/SystemConfig/Schema/config.xsd">
+    
+    <card>
+        <title>Notification settings</title>
+        <title lang="de-DE">Benachrichtigungseinstellungen</title>
+
+        <input-field>
+            <name>notificationRecipients</name>
+            <label>Name and Mail for recipients of notifications</label>
+            <label lang="de-DE">Name und Mailadresse der Empfänger von Benachrichtigungen</label>          
+            <placeholder>John Doe;john.doe@john.doe</placeholder>
+            <placeholder lang="de-DE">Max Mustermann;mustermann@muster.man</placeholder>
+            <helpText>Input as many recipients as needed in valid formation: NAME DELIMITER(;) MAIL</helpText>
+            <helpText lang="de-DE">Geben Sie beliebig viele Empfänger für Benachrichtigungen in valider Form ein: NAME TRENNZEICHEN(;) MAILADRESSE.</helpText>
+        </input-field>
+    </card>
+</config>

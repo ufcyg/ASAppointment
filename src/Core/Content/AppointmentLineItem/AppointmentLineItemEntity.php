@@ -2,6 +2,7 @@
 
 namespace ASAppointment\Core\Content\AppointmentLineItem;
 
+use DateTimeImmutable;
 use Shopware\Core\Framework\DataAbstractionLayer\Entity;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityIdTrait;
 
@@ -13,7 +14,7 @@ class AppointmentLineItemEntity extends Entity
     protected $productNumber;
     /** @var int */
     protected $amount;
-    /** @var string */
+    /** @var DateTimeImmutable */
     protected $appointmentDate;
     /** @var string */
     protected $customerId;

@@ -39,6 +39,8 @@
 
         <service id="ASAppointment\ScheduledTask\AppointmentOrderTaskHandler">
             <argument type="service" id="scheduled_task.repository" />
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
+            <argument type="service" id="ASMailService\Core\MailServiceHelper" />
             <tag name="messenger.message_handler" />
         </service>
     </services>

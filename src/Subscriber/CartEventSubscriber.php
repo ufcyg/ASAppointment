@@ -72,6 +72,8 @@ class CartEventSubscriber implements EventSubscriberInterface
         $content = $request->getContent();
         if($content == '{}')
             return;
+        if($content == "")
+            return;
         $contentExploded = explode('&',$content);
         $appointmentData = $this->extractAppointmentData($contentExploded);
         /** @var Context $context */

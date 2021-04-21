@@ -6,7 +6,11 @@ use Shopware\Core\Checkout\Cart\Cart;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
 use Shopware\Core\Checkout\Cart\LineItem\LineItemCollection;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
+use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\Routing\Annotation\RouteScope;
 use Shopware\Core\Framework\Uuid\Uuid;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
@@ -43,7 +47,7 @@ class AppointmentCartController extends StorefrontController
         $lineItem->setReferencedId($productId);
 
         $this->cartService->add($cart, $lineItem, $context);
-
+        
         return $this->forwardToRoute('frontend.checkout.confirm.page');
     }
 
@@ -80,5 +84,47 @@ class AppointmentCartController extends StorefrontController
         $lastDay = date("Y-m-d", $lastDayUTS);
         // $lastDay = $lastDay . " 23:59:59.999";
         return $lastDay;
+    }
+
+
+
+
+
+
+
+
+
+
+    public function getAllEntitiesOfRepository(EntityRepositoryInterface $repository, Context $context): ?EntitySearchResult
+    {   
+        /** @var Criteria $criteria */
+        $criteria = new Criteria();
+        /** @var EntitySearchResult $result */
+        $result = $repository->search($criteria,$context);
+
+        return $result;
+    }
+
+    public function getFilteredEntitiesOfRepository(EntityRepositoryInterface $repository, string $fieldName, $fieldValue, Context $context): ?EntitySearchResult
+    {   
+        /** @var Criteria $criteria */
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter($fieldName, $fieldValue));
+        /** @var EntitySearchResult $result */
+        $result = $repository->search($criteria,$context);
+
+        return $result;
+    }
+
+    public function entityExistsInRepositoryCk(EntityRepositoryInterface $repository, string $fieldName, $fieldValue, Context $context): bool
+    {
+        $criteria = new Criteria();
+
+        $criteria->addFilter(new EqualsFilter($fieldName, $fieldValue));
+
+        /** @var EntitySearchResult $searchResult */
+        $searchResult = $repository->search($criteria, $context);
+        
+        return count($searchResult) != 0 ? true : false;
     }
 }
