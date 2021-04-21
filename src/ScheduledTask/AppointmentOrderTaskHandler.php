@@ -5,9 +5,11 @@ namespace ASAppointment\ScheduledTask;
 use ASAppointment\Core\Content\AppointmentLineItem\AppointmentLineItemEntity;
 use ASMailService\Core\MailServiceHelper;
 use DateTimeImmutable;
+use Psr\Container\ContainerInterface;
 use Shopware\Core\Checkout\Cart\Cart;
 use Shopware\Core\Checkout\Cart\Delivery\Struct\ShippingLocation;
 use Shopware\Core\Checkout\Cart\LineItem\LineItem;
+use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
 use Shopware\Core\Checkout\Customer\Aggregate\CustomerAddress\CustomerAddressEntity;
 use Shopware\Core\Checkout\Customer\CustomerEntity;
 use Shopware\Core\Content\Product\ProductEntity;
@@ -30,13 +32,19 @@ class AppointmentOrderTaskHandler extends ScheduledTaskHandler
     private $systemConfigService;
     /** @var MailServiceHelper $mailService */
     private $mailService;
+    /** @var ContainerInterface $container */
+    protected $container;
+    /** @var CartService $cartService */
+    protected $cartService;
     public function __construct(EntityRepositoryInterface $scheduledTaskRepository,
                                 SystemConfigService $systemConfigService,
-                                MailServiceHelper $mailService)
+                                MailServiceHelper $mailService,
+                                CartService $cartService)
     {
         parent::__construct($scheduledTaskRepository);
         $this->systemConfigService = $systemConfigService;
         $this->mailService = $mailService;
+        $this->cartService = $cartService;
     }
 
     public static function getHandledMessages(): iterable
@@ -44,9 +52,20 @@ class AppointmentOrderTaskHandler extends ScheduledTaskHandler
         return [ AppointmentOrderTask::class ];
     }
 
+    /** @internal @required */
+    public function setContainer(ContainerInterface $container): ?ContainerInterface
+    {
+        $previous = $this->container;
+        $this->container = $container;
+
+        return $previous;
+    }
+
     public function run(): void
     {
         $appointmentLineItems = $this->getAppointmentsOnDue();
+        if($appointmentLineItems == null)
+            return;
         /** @var AppointmentLineItemEntity $appointmentLineItem */
         foreach($appointmentLineItems as $appointmentLineItemID => $appointmentLineItem)
         {
@@ -81,14 +100,13 @@ class AppointmentOrderTaskHandler extends ScheduledTaskHandler
             $this->cartService->setCart($myCart);
 
             //remove appointment line item from db
-            $this->container->get('as_appointment_line_item.repository')->delete([['id' => $appointmentLineItemID]],Context::createDefaultContext());
-            
+            // $this->container->get('as_appointment_line_item.repository')->delete([['id' => $appointmentLineItemID]],Context::createDefaultContext());
+            /************************************************** */
             $customerName = $customerEntity->getFirstName() . ' ' . $customerEntity->getLastName();
             $customerMail = $customerEntity->getEmail();
             $date = date('Y-m-d', $appointmentLineItem->getAppointmentDate()->getTimestamp());
             if(count($myCart->getLineItems()) == 0)
             { // product is currently not available, notification to customer support
-                $this->systemConfigService->get('ASControllingReport.config.fallbackSaleschannelNotification');
                 $recipients = $this->getRecipients();
                 $customerName = $customerEntity->getFirstName() . ' ' . $customerEntity->getLastName();
                 $customerMail = $customerEntity->getEmail();
@@ -103,19 +121,18 @@ class AppointmentOrderTaskHandler extends ScheduledTaskHandler
                                                 $notification,
                                                 $notification,
                                                 ['']);
-                return;
+                continue;
             }
             $this->cartService->order($myCart,$salesChannelContext,null);
-        }
-        $notification = "Ihre Terminbestellung wurde aufgegeben.<br><br>Artikelnummer: $productNumber<br>Menge: $quantity<br>Wunschtermin: $date<br><br> Weitere Informationen können in Ihrem Kundenprofil aufgerufen werden.";
-        $this->mailService->sendMyMail([$customerMail => $customerName],
+            $notification = "Ihre Terminbestellung wurde aufgegeben.<br><br>Artikelnummer: $productNumber<br>Menge: $quantity<br>Wunschtermin: $date<br><br> Weitere Informationen können in Ihrem Kundenprofil aufgerufen werden.";
+            $this->mailService->sendMyMail([$customerMail => $customerName],
                                         null,
                                         'Terminbestellung',
                                         'Terminbestellung ausgeführt',
                                         $notification,
                                         $notification,
                                         ['']);
-        return;
+        }        
     }    
 
     private function createSalesChannelContext(CustomerEntity $customerEntity, $context)

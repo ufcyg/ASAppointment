@@ -37,10 +37,17 @@
             <tag name="shopware.entity.definition" entity="as_appointment_line_item" />
         </service>
 
+        <service id="ASAppointment\ScheduledTask\AppointmentOrderTask">
+            <tag name="shopware.scheduled.task" />
+        </service>
         <service id="ASAppointment\ScheduledTask\AppointmentOrderTaskHandler">
             <argument type="service" id="scheduled_task.repository" />
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
             <argument type="service" id="ASMailService\Core\MailServiceHelper" />
+            <argument type="service" id="Shopware\Core\Checkout\Cart\SalesChannel\CartService" />
+            <call method="setContainer">
+                <argument type="service" id="service_container" />
+            </call>
             <tag name="messenger.message_handler" />
         </service>
     </services>
