@@ -212,7 +212,6 @@ class CartEventSubscriber implements EventSubscriberInterface
 
         return $result;
     }
-
     public function getFilteredEntitiesOfRepository(EntityRepositoryInterface $repository, string $fieldName, $fieldValue, Context $context): ?EntitySearchResult
     {   
         /** @var Criteria $criteria */
@@ -223,7 +222,6 @@ class CartEventSubscriber implements EventSubscriberInterface
 
         return $result;
     }
-
     public function entityExistsInRepositoryCk(EntityRepositoryInterface $repository, string $fieldName, $fieldValue, Context $context): bool
     {
         $criteria = new Criteria();
