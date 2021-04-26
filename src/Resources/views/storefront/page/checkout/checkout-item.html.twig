@@ -1,41 +1,37 @@
 {% sw_extends '@Storefront/storefront/page/checkout/checkout-item.html.twig' %}
 {% block page_checkout_item_container %}
     <template data-a-s-appointment></template>
-    {% block as_appointmentorder_is_appointment %}
-        <input type="checkbox"
-                title="Check for appointment order"
-                class=""
-                id="appointment"
-                form="confirmOrderForm"
-                name="appointment"/>
-    {% endblock %}
+    {% if shopware.config.ASAppointment.config.appointmentOrdersActive == true %}
+        {% block as_appointmentorder_is_appointment %}
+            <input type="checkbox"
+                    title="Check for appointment order"
+                    class=""
+                    id="appointment"
+                    form="confirmOrderForm"
+                    name="appointment"/>
+        {% endblock %}
 
-    {% block as_appointmentorder_appointment_date %}
-        <input type="date"
-                min="{{ "now"|date("Y-m-d") }}"
-                name="appointmentDate-{{lineItem.id}}"
-                id="appointmentDate-{{lineItem.id}}"
-                form="confirmOrderForm"
-                onfocus="{{ "now"|date("m/d/Y") }}"
-                data-datepicker="true" />
-        {# {{ dump(lineItem) }} #}
-    {% endblock %}
+        {% block as_appointmentorder_appointment_date %}
+            <input type="date"
+                    min="{{ "now"|date("Y-m-d") }}"
+                    name="appointmentDate-{{lineItem.id}}"
+                    id="appointmentDate-{{lineItem.id}}"
+                    form="confirmOrderForm"
+                    onfocus="{{ "now"|date("m/d/Y") }}"
+                    data-datepicker="true" />
+            {# {{ dump(lineItem) }} #}
+        {% endblock %}
+    {% endif %}
     {{ parent() }}
 {% endblock %}
 
 {% block page_checkout_item_remove %}
     {{ parent() }}
-    <div class "row col-md-2">
-        <a class="btn btn-light btn-sm" href="{{ path("frontend.checkout.addAppointmentLineItem", { 'lineItemId': lineItem.id} ) }}" >
-            +
-        </a>
-    </div>
-    {# {% block as_appointmentorder_appointment_date %}
-        <input type="date"
-                name="appointmentDate-{{lineItem.id}}"
-                id="appointmentDate-{{lineItem.id}}"
-                form="confirmOrderForm"
-                placeholder={{ "now"|date("m/d/Y") }}
-                data-datepicker="true" />
-    {% endblock %} #}
+    {% if shopware.config.ASAppointment.config.appointmentOrdersActive == true %}
+        <div class "row col-md-2">
+            <a class="btn btn-light btn-sm" href="{{ path("frontend.checkout.addAppointmentLineItem", { 'lineItemId': lineItem.id} ) }}" >
+                +
+            </a>
+        </div>
+    {% endif %}
 {% endblock %}

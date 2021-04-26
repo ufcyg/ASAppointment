@@ -25,9 +25,7 @@ class ASAppointment extends Plugin
     /** @inheritDoc */
     public function install(InstallContext $installContext): void
     {
-        if (!file_exists('../custom/plugins/ASControllingReport/Reports/')) {
-            mkdir('../custom/plugins/ASControllingReport/Reports/', 0777, true);
-        }
+        
     }
 
     /** @inheritDoc */
@@ -50,8 +48,10 @@ class ASAppointment extends Plugin
     {
         $context = $activateContext->getContext();
 
+        /** @var EntityRepositoryInterface $stateMachineRepository */
+        $stateMachineRepository = $this->container->get('state_machine.repository');
         /** @var StateMachineEntity $stateMachine */
-        $stateMachine = $this->getFilteredEntitiesOfRepository($this->container->get('state_machine.repository'), 
+        $stateMachine = $this->getFilteredEntitiesOfRepository($stateMachineRepository, 
                                                                 'technicalName', 
                                                                 'order.state', 
                                                                 $context)->first();
@@ -59,18 +59,54 @@ class ASAppointment extends Plugin
         $stateMachineStateRepository = $this->container->get('state_machine_state.repository');
         /** @var StateMachineStateEntity */
         // add state
+        $this->addState($stateMachineStateRepository, $stateMachine, 'appointed', $context);
+        $this->addState($stateMachineStateRepository, $stateMachine, 'cancelledAppointment', $context);
+        //add state translations
+        $this->addStateTranslation($stateMachineStateRepository, 'appointed', 'Terminbestellung', 'Appointmentorder',  $context);
+        $this->addStateTranslation($stateMachineStateRepository, 'cancelledAppointment', 'Terminbestellung(abgebrochen)', 'Appointmentorder(cancelled)',  $context);
+        // add transitions
+        //get open state machine state
+        $criteria = new Criteria();
+        $criteria->addFilter(new EqualsFilter('stateMachineId', $stateMachine->getId()));
+        $criteria->addFilter(new EqualsFilter('technicalName', 'open'));
+        /** @var StateMachineStateEntity $openState */
+        $openState = $stateMachineStateRepository->search($criteria, $context)->first();
+        //get cancelledAppointment state machine state
+        /** @var StateMachineStateEntity $cancelledState */
+        $cancelledState = $this->getFilteredEntitiesOfRepository($stateMachineStateRepository, 'technicalName', 'cancelledAppointment', $context)->first();
+
+        /** @var StateMachineStateEntity $stateEntity */
+        $appointedStateEntity = $this->getFilteredEntitiesOfRepository($stateMachineStateRepository, 'technicalName', 'appointed', $context)->first();
+        //add open to appointed transition
+        $this->addStateTransition($stateMachine->getId(), $openState->getId(), $appointedStateEntity->getId(), 'setAppointed', $context);
+        //add appointed to open transition
+        $this->addStateTransition($stateMachine->getId(), $appointedStateEntity->getId(), $openState->getId(), 'openAppointment', $context);
+        //add appointed to cancelled transition
+        $this->addStateTransition($stateMachine->getId(), $appointedStateEntity->getId(), $cancelledState->getId(), 'cancelAppointment', $context);
+        //add cancelled to appointed transition
+        $this->addStateTransition($stateMachine->getId(), $cancelledState->getId(), $appointedStateEntity->getId(), 'reopenAppointment', $context);
+
+        // // set initial state of orders to Appointmentorder
+        // $stateMachineRepository->update([['id' => $stateMachine->getId(), 'initialStateId' => $appointedStateEntity->getId()]], $context);
+    }
+
+    private function addState($stateMachineStateRepository, $stateMachine, $technicalName, $context)
+    {
         if(!$this->entityExistsInRepositoryCk($stateMachineStateRepository,
                                                 'technicalName', 
-                                                'appointed', 
+                                                $technicalName, 
                                                 $context))
         {
             /** @var EntityWrittenContainerEvent $stateTransitionWrittenEvent */
             $stateTransitionWrittenEvent = $stateMachineStateRepository->create([['name' => 'appointed',
-                                                    'technicalName' => 'appointed', 
+                                                    'technicalName' => $technicalName, 
                                                     'stateMachineId' => $stateMachine->getId()
                                                     ]],$context);
         }
-        //add state translations
+    }
+
+    private function addStateTranslation($stateMachineStateRepository, $technicalName, $germanName, $englishName, $context)
+    {
         /** @var EntityRepositoryInterface $languageRepository */
         $languageRepository = $this->container->get('language.repository');
         $languages = $this->getAllEntitiesOfRepository($languageRepository,$context);
@@ -89,84 +125,41 @@ class ASAppointment extends Plugin
                     break;
             }
         }
-        /** @var StateMachineStateEntity $appointedStateEntity */
-        $appointedStateEntity = $this->getFilteredEntitiesOfRepository($stateMachineStateRepository, 'technicalName', 'appointed', $context)->first();
+        /** @var StateMachineStateEntity $stateEntity */
+        $stateEntity = $this->getFilteredEntitiesOfRepository($stateMachineStateRepository, 'technicalName', $technicalName, $context)->first();
         /** @var EntityRepositoryInterface $stateMachineStateTranslationRepository */
         $stateMachineStateTranslationRepository = $this->container->get('state_machine_state_translation.repository');
         if($germanID != null)
         {
-            if(!$this->entityExistsInRepositoryCk($stateMachineStateTranslationRepository, 'name', 'Terminbestellung', $context))
+            if(!$this->entityExistsInRepositoryCk($stateMachineStateTranslationRepository, 'name', $germanName, $context))
                 $stateMachineStateTranslationRepository->upsert([
                     ['languageId' => $germanID, 
-                    'stateMachineStateId' => $appointedStateEntity->getId(), 
-                    'name' => 'Terminbestellung']
+                    'stateMachineStateId' => $stateEntity->getId(), 
+                    'name' => $germanName]
                 ], $context);
         }
         if($englishID != null)
         {
-            if(!$this->entityExistsInRepositoryCk($stateMachineStateTranslationRepository, 'name', 'Appointmentorder', $context))
+            if(!$this->entityExistsInRepositoryCk($stateMachineStateTranslationRepository, 'name', $englishName, $context))
                 $stateMachineStateTranslationRepository->upsert([
                     ['languageId' => $englishID, 
-                    'stateMachineStateId' => $appointedStateEntity->getId(), 
-                    'name' => 'Appointmentorder']
+                    'stateMachineStateId' => $stateEntity->getId(), 
+                    'name' => $englishName]
                 ], $context);
         }
-        // add transitions
+    }
+
+    private function addStateTransition($stateMachineID, $fromStateID, $toStateID, $actionName, Context $context)
+    {
         /** @var EntityRepositoryInterface $stateMachineTransitionRepository */
         $stateMachineTransitionRepository = $this->container->get('state_machine_transition.repository');
-        //open to appointed
-        //get open state machine state
-        $criteria = new Criteria();
-        $criteria->addFilter(new EqualsFilter('stateMachineId', $stateMachine->getId()));
-        $criteria->addFilter(new EqualsFilter('technicalName', 'open'));
-        /** @var StateMachineStateEntity $openState */
-        $openState = $stateMachineStateRepository->search($criteria, $context)->first();
-        //get open state machine state
-        $criteria = new Criteria();
-        $criteria->addFilter(new EqualsFilter('stateMachineId', $stateMachine->getId()));
-        $criteria->addFilter(new EqualsFilter('technicalName', 'cancelled'));
-        /** @var StateMachineStateEntity $cancelledState */
-        $cancelledState = $stateMachineStateRepository->search($criteria, $context)->first();
-
-        //add open to appointed transition
-        if(!$this->entityExistsInRepositoryCk($stateMachineTransitionRepository, 'actionName', 'setAppointed', $context))
+        if(!$this->entityExistsInRepositoryCk($stateMachineTransitionRepository, 'actionName', $actionName, $context))
         {
             $stateMachineTransitionRepository->create([[
-                'actionName' => 'setAppointed',
-                'stateMachineId' => $stateMachine->getId(),
-                'fromStateId' => $openState->getId(),
-                'toStateId' => $appointedStateEntity->getId()
-            ]], $context);
-        }
-        //add appointed to open transition
-        if(!$this->entityExistsInRepositoryCk($stateMachineTransitionRepository, 'actionName', 'openAppointment', $context))
-        {
-            $stateMachineTransitionRepository->create([[
-                'actionName' => 'openAppointment',
-                'stateMachineId' => $stateMachine->getId(),
-                'fromStateId' => $appointedStateEntity->getId(),
-                'toStateId' => $openState->getId()
-            ]], $context);
-        }
-
-        //add appointed to cancelled transition
-        if(!$this->entityExistsInRepositoryCk($stateMachineTransitionRepository, 'actionName', 'cancelAppointment', $context))
-        {
-            $stateMachineTransitionRepository->create([[
-                'actionName' => 'cancelAppointment',
-                'stateMachineId' => $stateMachine->getId(),
-                'fromStateId' => $appointedStateEntity->getId(),
-                'toStateId' => $cancelledState->getId()
-            ]], $context);
-        }
-        //add cancelled to appointed transition
-        if(!$this->entityExistsInRepositoryCk($stateMachineTransitionRepository, 'actionName', 'reopenAppointment', $context))
-        {
-            $stateMachineTransitionRepository->create([[
-                'actionName' => 'reopenAppointment',
-                'stateMachineId' => $stateMachine->getId(),
-                'fromStateId' => $appointedStateEntity->getId(),
-                'toStateId' =>$appointedStateEntity->getId()
+                'actionName' => $actionName,
+                'stateMachineId' => $stateMachineID,
+                'fromStateId' => $fromStateID,
+                'toStateId' => $toStateID
             ]], $context);
         }
     }
@@ -174,6 +167,36 @@ class ASAppointment extends Plugin
     /** @inheritDoc */
     public function deactivate(DeactivateContext $deactivateContext): void
     {
+        // remove transitions
+        $context = $deactivateContext->getContext();
+        /** @var EntityRepositoryInterface $stateMachineTransitionRepository */
+        $stateMachineTransitionRepository = $this->container->get('state_machine_transition.repository');
+        
+        $this->removeEntity($stateMachineTransitionRepository, 'actionName', 'setAppointed', $context);
+        $this->removeEntity($stateMachineTransitionRepository, 'actionName', 'openAppointment',$context);
+        $this->removeEntity($stateMachineTransitionRepository, 'actionName', 'cancelAppointment', $context);
+        $this->removeEntity($stateMachineTransitionRepository, 'actionName', 'reopenAppointment', $context);
+
+        // // reset initial state of orders
+        // /** @var EntityRepositoryInterface $stateMachineRepository */
+        // $stateMachineRepository = $this->container->get('state_machine.repository');
+        // $stateMachine = $this->getFilteredEntitiesOfRepository($stateMachineRepository, 'technicalName', 'order.state', $context)->first();
+        // //get open state machine state
+        // /** @var EntityRepositoryInterface $stateMachineRepository */
+        // $stateMachineStateRepository = $this->container->get('state_machine_state.repository');
+        // $criteria = new Criteria();
+        // $criteria->addFilter(new EqualsFilter('stateMachineId', $stateMachine->getId()));
+        // $criteria->addFilter(new EqualsFilter('technicalName', 'open'));
+        // /** @var StateMachineStateEntity $openState */
+        // $openStateEntity = $stateMachineStateRepository->search($criteria, $context)->first();
+        // $stateMachineRepository->update([['id' => $stateMachine->getId(), 'initialStateId' => $openStateEntity->getId()]], $context);
+    }
+
+    private function removeEntity(EntityRepositoryInterface $repository, string $fieldName, string $fieldValue, Context $context)
+    {
+        $entity = $this->getFilteredEntitiesOfRepository($repository, $fieldName, $fieldValue, $context)->first();
+        if($entity != null)
+            $repository->delete([['id' => $entity->getId()]], $context);
     }
 
     /** @inheritDoc */

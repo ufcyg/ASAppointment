@@ -23,14 +23,12 @@
                 <argument type="service" id="service_container" />
             </call>
         </service>
-        <service id="ASAppointment\Subscriber\LineItemEventSubscriber">
+        <service id="ASAppointment\Subscriber\OrderStateTransitionSubscriber">
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <argument type="service" id="Shopware\Core\Content\Product\ProductDefinition"/>
+            <argument type="service" id="Shopware\Core\Framework\Adapter\Cache\CacheClearer"/>
+            <argument type="service" id="Shopware\Core\Framework\DataAbstractionLayer\Cache\EntityCacheKeyGenerator"/>
             <tag name="kernel.event_subscriber"/>
-            <tag name="shopware.event_subscriber"/>
-            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
-            <argument type="service" id="request_stack" />
-            <call method="setContainer">
-                <argument type="service" id="service_container" />
-            </call>
         </service>
 
         <service id="ASAppointment\Core\Content\AppointmentLineItem\AppointmentLineItemDefinition">

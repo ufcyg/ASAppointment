@@ -3,6 +3,17 @@
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/platform/master/src/Core/System/SystemConfig/Schema/config.xsd">
     
     <card>
+        <title>Plugin Settings</title>
+        <title lang="de-DE">Allgemeine Einstellungen</title>
+        <input-field type="bool">
+            <name>appointmentOrdersActive</name>
+            <label>Activate appointment orders for the storefront</label>
+            <label lang="de-DE">Terminbestellungen für Kunden aktivieren</label>
+            <helpText>If toggled the required field to create an appoinment order are displayed to the customer.</helpText>
+            <helpText lang="de-DE">Falls aktiviert werden die benötigten Felder, um eine Terminbestellung zu erstellen, für den Kunden angezeigt.</helpText>
+        </input-field>
+    </card>
+    <card>
         <title>Notification settings</title>
         <title lang="de-DE">Benachrichtigungseinstellungen</title>
 
