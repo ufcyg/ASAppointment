@@ -66,11 +66,34 @@ class OrderStateTransitionSubscriber implements EventSubscriberInterface
 
     public function stateChanged(StateMachineTransitionEvent $event): void
     {
-        if ($event->getToPlace()->getTechnicalName() === 'appointed') {
-            $this->increaseStock($event);
+        if ($event->getContext()->getVersionId() !== Defaults::LIVE_VERSION) {
+            return;
         }
-        else if($event->getFromPlace()->getTechnicalName() === 'appointed' && $event->getToPlace()->getTechnicalName() != 'cancelledAppointment'){
-            $this->decreaseStock($event);
+        if ($event->getEntityName() !== 'order') {
+            return;
+        }
+
+        if ($event->getToPlace()->getTechnicalName() === AppointmentOrderStates::STATE_APPOINTED) {
+            $products = $this->getProductsOfOrder($event->getEntityId());
+
+            $ids = array_column($products, 'referenced_id');
+
+            $this->updateAvailableStockAndSales($ids, $event->getContext());
+
+            $this->updateAvailableFlag($ids, $event->getContext());
+
+            $this->clearCache($ids);
+        }
+        else if($event->getFromPlace()->getTechnicalName() === AppointmentOrderStates::STATE_APPOINTED && $event->getToPlace()->getTechnicalName() != AppointmentOrderStates::STATE_APPOINTMENT_CANCELLED){
+            $products = $this->getProductsOfOrder($event->getEntityId());
+
+            $ids = array_column($products, 'referenced_id');
+
+            $this->updateAvailableStockAndSales($ids, $event->getContext());
+
+            $this->updateAvailableFlag($ids, $event->getContext());
+
+            $this->clearCache($ids);
         }
     }
 
@@ -208,6 +231,8 @@ GROUP BY product_id;
                 'id' => Uuid::fromHexToBytes((string) $id),
                 'open_quantity' => 0,
                 'sales_quantity' => 0,
+                'appointed_quantity' => 0,
+                'appointed_cancelled_quantity' => 0,
             ]);
         }
 
@@ -216,6 +241,8 @@ GROUP BY product_id;
                 'id' => Uuid::fromHexToBytes($row['product_id']),
                 'open_quantity' => $row['open_quantity'],
                 'sales_quantity' => $row['sales_quantity'],
+                'appointed_quantity' => $row['appointed_quantity'],
+                'appointed_cancelled_quantity' => $row['appointed_cancelled_quantity'],
             ]);
         }
     }
