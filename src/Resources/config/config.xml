@@ -12,6 +12,13 @@
             <helpText>If toggled the required field to create an appoinment order are displayed to the customer.</helpText>
             <helpText lang="de-DE">Falls aktiviert werden die benötigten Felder, um eine Terminbestellung zu erstellen, für den Kunden angezeigt.</helpText>
         </input-field>
+        <input-field>
+            <name>minimumAppointmentDate</name>
+            <label>Minimum days to be locked for appointments</label>
+            <label lang="de-DE">Mindestanzahl an Tagen, welche für eine Terminbestellung gesperrt sind</label>
+            <helpText>Fill in the number of days that shouldn't be available for appointment orders after today.</helpText>
+            <helpText lang="de-DE">Geben Sie hier die Anzahl an Tagen an, welche für eine Terminbestellung gesperrt sind.</helpText>
+        </input-field>
     </card>
     <card>
         <title>Notification settings</title>

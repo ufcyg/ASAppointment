@@ -12,12 +12,14 @@
         {% endblock %}
 
         {% block as_appointmentorder_appointment_date %}
+            {% set minimumAppointmentDate = shopware.config.ASAppointment.config.minimumAppointmentDate %}
+            {% set minimumAppointmentDateString = 'now + ' ~ minimumAppointmentDate ~ ' days' %}
             <input type="date"
-                    min="{{ "now + 7 days"|date("Y-m-d") }}"
+                    min="{{ minimumAppointmentDateString|date("Y-m-d") }}"
                     name="appointmentDate-{{lineItem.id}}"
                     id="appointmentDate-{{lineItem.id}}"
                     form="confirmOrderForm"
-                    onfocus="{{ "now + 7 days"|date("m/d/Y") }}"
+                    onfocus="{{ minimumAppointmentDateString|date("Y-m-d") }}"
                     data-datepicker="true" />
             {# {{ dump(lineItem) }} #}
         {% endblock %}
