@@ -73,5 +73,19 @@
             </call>
             <tag name="messenger.message_handler" />
         </service>
+
+        <!-- // stock error notification task -->
+        <service id="ASAppointment\ScheduledTask\StockErrorNotificationTask">
+            <tag name="shopware.scheduled.task" />
+        </service>
+        <service id="ASAppointment\ScheduledTask\StockErrorNotificationTaskHandler">
+            <argument type="service" id="scheduled_task.repository" />
+            <argument type="service" id="ASMailService\Core\MailServiceHelper" />
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
+            <call method="setContainer">
+                <argument type="service" id="service_container" />
+            </call>
+            <tag name="messenger.message_handler" />
+        </service>
     </services>
 </container>

@@ -30,8 +30,6 @@ class AppointmentOrderTaskHandler extends ScheduledTaskHandler
     private $mailService;
     /** @var ContainerInterface $container */
     protected $container;
-    /** @var CartService $cartService */
-    protected $cartService;
     /** @var OrderService $orderService */
     private $orderService;
 

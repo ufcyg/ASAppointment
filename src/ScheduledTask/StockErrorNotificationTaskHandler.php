@@ -4,28 +4,39 @@ declare(strict_types=1);
 
 namespace ASAppointment\ScheduledTask;
 
+use ASMailService\Core\MailServiceHelper;
 use Psr\Container\ContainerInterface;
+use Shopware\Core\Content\Product\ProductEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\MessageQueue\ScheduledTask\ScheduledTaskHandler;
+use Shopware\Core\System\SystemConfig\SystemConfigService;
 
-class DeleteEmptyOrdersTaskHandler extends ScheduledTaskHandler
+class StockErrorNotificationTaskHandler extends ScheduledTaskHandler
 {
+    /** @var MailServiceHelper $mailService */
+    private $mailService;
     /** @var ContainerInterface $container */
     protected $container;
+    /** @var SystemConfigService $systemConfigService */
+    private $systemConfigService;
 
     public function __construct(
-        EntityRepositoryInterface $scheduledTaskRepository
+        EntityRepositoryInterface $scheduledTaskRepository,
+        MailServiceHelper $mailService,
+        SystemConfigService $systemConfigService
     ) {
+        $this->mailService = $mailService;
+        $this->systemConfigService = $systemConfigService;
         parent::__construct($scheduledTaskRepository);
     }
 
     public static function getHandledMessages(): iterable
     {
-        return [DeleteEmptyOrdersTask::class];
+        return [StockErrorNotificationTask::class];
     }
 
     /** @internal @required */
@@ -39,16 +50,44 @@ class DeleteEmptyOrdersTaskHandler extends ScheduledTaskHandler
 
     public function run(): void
     {
+        $sendMail = false;
+        $criticalProducts = '';
         $context = Context::createDefaultContext();
-        foreach ($this->container->get('order.repository')->search(new Criteria(), $context) as $orderID => $order) {
-            $this->deleteOrderIfEmpty($orderID, $context);
+        /** @var ProductEntity $product */
+        foreach ($this->getAllEntitiesOfRepository($this->container->get('product.repository'), $context) as $productID => $product) {
+            if($product->getAvailableStock() < 0)
+            {
+                $sendMail = true;
+                $productNumber = $product->getProductNumber();
+                $criticalProducts .= "{$productNumber}, ";
+            }
         }
+
+        if($sendMail)
+        {
+            $criticalProducts = rtrim($criticalProducts, ", ");
+            $notification = "Kritischer Bestand nach Öffnung von Terminbestellungen für folgende Produkte:<br><br> {$criticalProducts}<br><br> Bestellungen überprüfen und gegebenfalls zurückstellen bis Bestand ausreichend ist.";
+            $this->mailService->sendMyMail(
+                $this->getRecipients(),
+                null,
+                'Terminbestellungs Plugin',
+                'Bestand kritisch',
+                $notification,
+                $notification,
+                ['']
+            );
+        }        
     }
-    private function deleteOrderIfEmpty(string $orderID, Context $context)
+
+    private function getRecipients(): ?array
     {
-        $searchResult = $this->getFilteredEntitiesOfRepository($this->container->get('order_line_item.repository'), 'orderId', $orderID, $context);
-        if (count($searchResult) == 0)
-            $this->container->get('order.repository')->delete([['id' => $orderID]], $context);
+        $recipients = null;
+        $recipientsRaw = $this->systemConfigService->get('ASAppointment.config.notificationRecipients');
+        $recipientsExploded = explode(';', $recipientsRaw);
+        for ($i = 0; $i < count($recipientsExploded); $i += 2) {
+            $recipients[$recipientsExploded[$i + 1]] = $recipientsExploded[$i];
+        }
+        return $recipients;
     }
 
     public function getAllEntitiesOfRepository(EntityRepositoryInterface $repository, Context $context): ?EntitySearchResult

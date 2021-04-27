@@ -4,15 +4,15 @@ namespace ASAppointment\ScheduledTask;
 
 use Shopware\Core\Framework\MessageQueue\ScheduledTask\ScheduledTask;
 
-class DeleteEmptyOrdersTask extends ScheduledTask
+class StockErrorNotificationTask extends ScheduledTask
 {
     public static function getTaskName(): string
     {
-        return 'as.delete_empty_orders_task';
+        return 'as.stock_error_notification_task';
     }
 
     public static function getDefaultInterval(): int
     {
-        return 240; // every 5 minutes
+        return 86340; // 24 hours
     }
 }
