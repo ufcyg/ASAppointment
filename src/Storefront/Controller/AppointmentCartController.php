@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace ASAppointment\Storefront\Controller;
 
@@ -41,7 +43,7 @@ class AppointmentCartController extends StorefrontController
         $lineItem->setReferencedId($productId);
 
         $this->cartService->add($cart, $lineItem, $context);
-        
+
         return $this->forwardToRoute('frontend.checkout.confirm.page');
     }
 }

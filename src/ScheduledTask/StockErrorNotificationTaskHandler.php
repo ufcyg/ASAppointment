@@ -55,16 +55,14 @@ class StockErrorNotificationTaskHandler extends ScheduledTaskHandler
         $context = Context::createDefaultContext();
         /** @var ProductEntity $product */
         foreach ($this->getAllEntitiesOfRepository($this->container->get('product.repository'), $context) as $productID => $product) {
-            if($product->getAvailableStock() < 0)
-            {
+            if ($product->getAvailableStock() < 0) {
                 $sendMail = true;
                 $productNumber = $product->getProductNumber();
                 $criticalProducts .= "{$productNumber}, ";
             }
         }
 
-        if($sendMail)
-        {
+        if ($sendMail) {
             $criticalProducts = rtrim($criticalProducts, ", ");
             $notification = "Kritischer Bestand nach Öffnung von Terminbestellungen für folgende Produkte:<br><br> {$criticalProducts}<br><br> Bestellungen überprüfen und gegebenfalls zurückstellen bis Bestand ausreichend ist.";
             $this->mailService->sendMyMail(
@@ -76,7 +74,7 @@ class StockErrorNotificationTaskHandler extends ScheduledTaskHandler
                 $notification,
                 ['']
             );
-        }        
+        }
     }
 
     private function getRecipients(): ?array

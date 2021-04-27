@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace ASAppointment\Subscriber;
 
@@ -44,7 +46,7 @@ class OrderStateTransitionSubscriber implements EventSubscriberInterface
      * @var EntityCacheKeyGenerator
      */
     private $cacheKeyGenerator;
-    
+
     public function __construct(
         Connection $connection,
         ProductDefinition $definition,
@@ -83,8 +85,7 @@ class OrderStateTransitionSubscriber implements EventSubscriberInterface
             $this->updateAvailableFlag($ids, $event->getContext());
 
             $this->clearCache($ids);
-        }
-        else if($event->getFromPlace()->getTechnicalName() === AppointmentOrderStates::STATE_APPOINTED && $event->getToPlace()->getTechnicalName() != AppointmentOrderStates::STATE_APPOINTMENT_CANCELLED){
+        } else if ($event->getFromPlace()->getTechnicalName() === AppointmentOrderStates::STATE_APPOINTED && $event->getToPlace()->getTechnicalName() != AppointmentOrderStates::STATE_APPOINTMENT_CANCELLED) {
             $products = $this->getProductsOfOrder($event->getEntityId());
 
             $ids = array_column($products, 'referenced_id');

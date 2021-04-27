@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace ASAppointment;
 
@@ -24,7 +26,7 @@ class ASAppointment extends Plugin
 {
     /** @inheritDoc */
     public function install(InstallContext $installContext): void
-    {  
+    {
     }
 
     /** @inheritDoc */
@@ -50,10 +52,12 @@ class ASAppointment extends Plugin
         /** @var EntityRepositoryInterface $stateMachineRepository */
         $stateMachineRepository = $this->container->get('state_machine.repository');
         /** @var StateMachineEntity $stateMachine */
-        $stateMachine = $this->getFilteredEntitiesOfRepository($stateMachineRepository, 
-                                                                'technicalName', 
-                                                                'order.state', 
-                                                                $context)->first();
+        $stateMachine = $this->getFilteredEntitiesOfRepository(
+            $stateMachineRepository,
+            'technicalName',
+            'order.state',
+            $context
+        )->first();
         /** @var EntityRepositoryInterface $stateMachineStateRepository */
         $stateMachineStateRepository = $this->container->get('state_machine_state.repository');
         /** @var StateMachineStateEntity */
@@ -91,16 +95,18 @@ class ASAppointment extends Plugin
 
     private function addState($stateMachineStateRepository, $stateMachine, $technicalName, $context)
     {
-        if(!$this->entityExistsInRepositoryCk($stateMachineStateRepository,
-                                                'technicalName', 
-                                                $technicalName, 
-                                                $context))
-        {
+        if (!$this->entityExistsInRepositoryCk(
+            $stateMachineStateRepository,
+            'technicalName',
+            $technicalName,
+            $context
+        )) {
             /** @var EntityWrittenContainerEvent $stateTransitionWrittenEvent */
-            $stateTransitionWrittenEvent = $stateMachineStateRepository->create([['name' => 'appointed',
-                                                    'technicalName' => $technicalName, 
-                                                    'stateMachineId' => $stateMachine->getId()
-                                                    ]],$context);
+            $stateTransitionWrittenEvent = $stateMachineStateRepository->create([[
+                'name' => 'appointed',
+                'technicalName' => $technicalName,
+                'stateMachineId' => $stateMachine->getId()
+            ]], $context);
         }
     }
 
@@ -108,14 +114,12 @@ class ASAppointment extends Plugin
     {
         /** @var EntityRepositoryInterface $languageRepository */
         $languageRepository = $this->container->get('language.repository');
-        $languages = $this->getAllEntitiesOfRepository($languageRepository,$context);
+        $languages = $this->getAllEntitiesOfRepository($languageRepository, $context);
         $germanID = null;
         $englishID = null;
         /** @var LanguageEntity $language */
-        foreach($languages as $languageID => $language)
-        {
-            switch($language->getName())
-            {
+        foreach ($languages as $languageID => $language) {
+            switch ($language->getName()) {
                 case 'Deutsch':
                     $germanID = $languageID;
                     break;
@@ -128,22 +132,24 @@ class ASAppointment extends Plugin
         $stateEntity = $this->getFilteredEntitiesOfRepository($stateMachineStateRepository, 'technicalName', $technicalName, $context)->first();
         /** @var EntityRepositoryInterface $stateMachineStateTranslationRepository */
         $stateMachineStateTranslationRepository = $this->container->get('state_machine_state_translation.repository');
-        if($germanID != null)
-        {
-            if(!$this->entityExistsInRepositoryCk($stateMachineStateTranslationRepository, 'name', $germanName, $context))
+        if ($germanID != null) {
+            if (!$this->entityExistsInRepositoryCk($stateMachineStateTranslationRepository, 'name', $germanName, $context))
                 $stateMachineStateTranslationRepository->upsert([
-                    ['languageId' => $germanID, 
-                    'stateMachineStateId' => $stateEntity->getId(), 
-                    'name' => $germanName]
+                    [
+                        'languageId' => $germanID,
+                        'stateMachineStateId' => $stateEntity->getId(),
+                        'name' => $germanName
+                    ]
                 ], $context);
         }
-        if($englishID != null)
-        {
-            if(!$this->entityExistsInRepositoryCk($stateMachineStateTranslationRepository, 'name', $englishName, $context))
+        if ($englishID != null) {
+            if (!$this->entityExistsInRepositoryCk($stateMachineStateTranslationRepository, 'name', $englishName, $context))
                 $stateMachineStateTranslationRepository->upsert([
-                    ['languageId' => $englishID, 
-                    'stateMachineStateId' => $stateEntity->getId(), 
-                    'name' => $englishName]
+                    [
+                        'languageId' => $englishID,
+                        'stateMachineStateId' => $stateEntity->getId(),
+                        'name' => $englishName
+                    ]
                 ], $context);
         }
     }
@@ -152,8 +158,7 @@ class ASAppointment extends Plugin
     {
         /** @var EntityRepositoryInterface $stateMachineTransitionRepository */
         $stateMachineTransitionRepository = $this->container->get('state_machine_transition.repository');
-        if(!$this->entityExistsInRepositoryCk($stateMachineTransitionRepository, 'actionName', $actionName, $context))
-        {
+        if (!$this->entityExistsInRepositoryCk($stateMachineTransitionRepository, 'actionName', $actionName, $context)) {
             $stateMachineTransitionRepository->create([[
                 'actionName' => $actionName,
                 'stateMachineId' => $stateMachineID,
@@ -170,9 +175,9 @@ class ASAppointment extends Plugin
         $context = $deactivateContext->getContext();
         /** @var EntityRepositoryInterface $stateMachineTransitionRepository */
         $stateMachineTransitionRepository = $this->container->get('state_machine_transition.repository');
-        
+
         $this->removeEntity($stateMachineTransitionRepository, 'actionName', 'setAppointed', $context);
-        $this->removeEntity($stateMachineTransitionRepository, 'actionName', 'openAppointment',$context);
+        $this->removeEntity($stateMachineTransitionRepository, 'actionName', 'openAppointment', $context);
         $this->removeEntity($stateMachineTransitionRepository, 'actionName', 'cancelAppointment', $context);
         $this->removeEntity($stateMachineTransitionRepository, 'actionName', 'reopenAppointment', $context);
 
@@ -194,7 +199,7 @@ class ASAppointment extends Plugin
     private function removeEntity(EntityRepositoryInterface $repository, string $fieldName, string $fieldValue, Context $context)
     {
         $entity = $this->getFilteredEntitiesOfRepository($repository, $fieldName, $fieldValue, $context)->first();
-        if($entity != null)
+        if ($entity != null)
             $repository->delete([['id' => $entity->getId()]], $context);
     }
 
@@ -217,21 +222,21 @@ class ASAppointment extends Plugin
 
 
     public function getAllEntitiesOfRepository(EntityRepositoryInterface $repository, Context $context): ?EntitySearchResult
-    {   
+    {
         /** @var Criteria $criteria */
         $criteria = new Criteria();
         /** @var EntitySearchResult $result */
-        $result = $repository->search($criteria,$context);
+        $result = $repository->search($criteria, $context);
 
         return $result;
     }
     public function getFilteredEntitiesOfRepository(EntityRepositoryInterface $repository, string $fieldName, $fieldValue, Context $context): ?EntitySearchResult
-    {   
+    {
         /** @var Criteria $criteria */
         $criteria = new Criteria();
         $criteria->addFilter(new EqualsFilter($fieldName, $fieldValue));
         /** @var EntitySearchResult $result */
-        $result = $repository->search($criteria,$context);
+        $result = $repository->search($criteria, $context);
 
         return $result;
     }
@@ -243,7 +248,7 @@ class ASAppointment extends Plugin
 
         /** @var EntitySearchResult $searchResult */
         $searchResult = $repository->search($criteria, $context);
-        
+
         return count($searchResult) != 0 ? true : false;
     }
 }
