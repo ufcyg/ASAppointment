@@ -2,11 +2,19 @@
 
 namespace ASAppointment\Subscriber;
 
+use ASAppointment\Core\Checkout\Order\AppointmentOrderStates;
 use DateInterval;
 use DateTime;
+use Doctrine\DBAL\Connection;
 use Psr\Container\ContainerInterface;
-use Shopware\Core\Checkout\Cart\Order\CartConvertedEvent;
+use Shopware\Core\Checkout\Cart\Cart;
+use Shopware\Core\Checkout\Cart\Delivery\Struct\ShippingLocation;
+use Shopware\Core\Checkout\Cart\LineItem\LineItem;
+use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
+use Shopware\Core\Checkout\Customer\Aggregate\CustomerAddress\CustomerAddressEntity;
+use Shopware\Core\Checkout\Customer\CustomerEntity;
 use Shopware\Core\Checkout\Order\Aggregate\OrderCustomer\OrderCustomerEntity;
+use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Checkout\Order\SalesChannel\OrderService;
 use Shopware\Core\Content\Product\ProductEntity;
 use Shopware\Core\Framework\Context;
@@ -16,8 +24,13 @@ use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
+use Shopware\Core\Framework\Uuid\Uuid;
+use Shopware\Core\System\SalesChannel\SalesChannelContext;
+use Shopware\Core\System\SalesChannel\SalesChannelEntity;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
+use Shopware\Core\System\Tax\TaxCollection;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * 
@@ -34,14 +47,22 @@ class CartEventSubscriber implements EventSubscriberInterface
     private $requestStack;
     /** @var OrderService $orderService */
     private $orderService;
+    /** @var CartService $cartService */
+    private $cartService;
+    /** @var Connection $connection */
+    private $connection;
 
     public function __construct(SystemConfigService $systemConfigService,
                                 RequestStack $requestStack,
-                                OrderService $orderService)
+                                OrderService $orderService,
+                                CartService $cartService,
+                                Connection $connection)
     {
         $this->systemConfigService = $systemConfigService;
         $this->requestStack = $requestStack;
         $this->orderService = $orderService;
+        $this->cartService = $cartService;
+        $this->connection = $connection;
     }
     /** @internal @required */
     public function setContainer(ContainerInterface $container): ?ContainerInterface
@@ -55,18 +76,15 @@ class CartEventSubscriber implements EventSubscriberInterface
     {
         // Return the events to listen to as array like this:  <event to listen to> => <method to execute>
         return [
-            CartConvertedEvent::class => 'onCartConvertedEvent',
             'order_line_item.written' => 'onOrderLineItemWrittenEvent'
         ];
     }
     public function onOrderLineItemWrittenEvent(EntityWrittenEvent $event): void
     {
-        $deleteData = null;
+        $orderID = null;
         $appointmentData = null;
         /** @var EntityRepositoryInterface $orderLineItemRepository */
         $orderLineItemRepository = $this->container->get('order_line_item.repository');
-        /** @var EntityRepositoryInterface $appointmentRepository */
-        $appointmentRepository = $this->container->get('as_appointment_line_item.repository');
 
         $request = $this->requestStack->getCurrentRequest();
         $content = $request->getContent();
@@ -98,37 +116,76 @@ class CartEventSubscriber implements EventSubscriberInterface
             else{
                 continue;
             }
-
+            /** @var EntityRepositoryInterface $productRepository */
+            $productRepository = $this->container->get('product.repository');
             /** @var ProductEntity $productEntity */
-            $productEntity = $this->getFilteredEntitiesOfRepository($this->container->get('product.repository'), 'id', $result->getPayload()['referencedId'], $context)->first();
-            
+            $productEntity = $this->getFilteredEntitiesOfRepository($productRepository, 'id', $result->getPayload()['referencedId'], $context)->first();
+            $prevProductCloseout = $productEntity->getIsCloseout();
+            $productRepository->update([['id' => $productEntity->getId(), 'isCloseout' => false]], Context::createDefaultContext());
             /** @var string $orderID */
             $orderID = $result->getPayload()['orderId'];
-            $customerId = $this->getCustomerID($orderID, $context);
+            /** @var OrderLineItemEntity $orderLineItem */
+            $orderLineItem = $this->getFilteredEntitiesOfRepository($orderLineItemRepository, 'id', $result->getPrimaryKey(), $context)->first();
+            //delete line item of this order
+            $orderLineItemRepository->delete([[ 'id' => $result->getPrimaryKey()]], $context);
+            //create new order
+            $newOrderID = $this->generateOrder($productEntity->getProductNumber(), 
+                                                $this->getCustomerID($orderID, $context),
+                                                $orderLineItem->getQuantity()
+                                                );
+            $productRepository->update([['id' => $productEntity->getId(), 'isCloseout' => $prevProductCloseout]], Context::createDefaultContext());
+            $this->orderService->orderStateTransition(
+                $newOrderID,
+                'setAppointed',
+                new ParameterBag(),
+                $context
+            );
 
-            $appointmentRepositoryData[] = [
-                'productNumber' => $productEntity->getProductNumber(),
-                'appointmentDate' => $appointmentDate,
-                'customerId' => $customerId,
-                'amount' => $result->getPayload()['quantity']
-            ];
-            $deleteData[] = [ 'id' => $result->getPrimaryKey()];
-        }    
-        if($appointmentRepositoryData != null)
-            $appointmentRepository->create($appointmentRepositoryData,$context);
-        if($deleteData!=null)
-            $orderLineItemRepository->delete($deleteData, $context);
+            $dateTimeOfAppointment = new DateTime($appointmentDate);//$this->getAppointmentOrderDateTime($appointmentDate);
+            $this->container->get('order.repository')->update([['id' => $newOrderID, 'orderDateTime' => $dateTimeOfAppointment]], $context);
+        }   
+    }   
 
+    private function createSalesChannelContext(CustomerEntity $customerEntity, $context)
+    {
+        $salesChannelId = $customerEntity->getSalesChannelId();
+        /** @var SalesChannelEntity $salesChannel */
+        $salesChannel = $this->getFilteredEntitiesOfRepository($this->container->get('sales_channel.repository'),'id',$salesChannelId,$context)->first();
 
-
-        // update stock and available after deletion of line items
-        $updateData = null;
-        $productRepository = $this->container->get('product.repository');
-        foreach($productRepository->search(new Criteria(), $context) as $productID => $product)
+        $currency = $this->getAllEntitiesOfRepository($this->container->get('currency.repository'),$context)->first();
+        $currentCustomerGroup = $this->getFilteredEntitiesOfRepository($this->container->get('customer_group.repository'),'id',$customerEntity->getGroupId(),$context)->first();
+        /** @var TaxCollection $taxes */
+        $taxes = $this->getAllEntitiesOfRepository($this->container->get('tax.repository'),$context)->getEntities();
+        foreach($taxes as $tax)
         {
-            $updateData[] = ['id' => $productID];
+            $tax->setRules($this->getFilteredEntitiesOfRepository($this->container->get('tax_rule.repository'),'taxId',$tax->getId(),$context)->getEntities());
         }
-        $productRepository->upsert($updateData, $context);
+
+        $paymentMethod = $this->getFilteredEntitiesOfRepository($this->container->get('payment_method.repository'),'id',$customerEntity->getDefaultPaymentMethodId(),$context)->first();
+        $customerEntity->setLastPaymentMethod($paymentMethod);
+
+        $shippingMethod = $this->getAllEntitiesOfRepository($this->container->get('shipping_method.repository'),$context)->first();
+
+        /** @var CustomerAddressEntity $customerAddress */
+        $customerAddress = $this->getFilteredEntitiesOfRepository($this->container->get('customer_address.repository'),'customerId',$customerEntity->getId(),$context)->first();
+        $customerEntity->setDefaultBillingAddress($customerAddress);
+        $country = $this->getFilteredEntitiesOfRepository($this->container->get('country.repository'),'id',$customerAddress->getCountryId(),$context)->first();
+        $customerAddress->setCountry($country);
+        $shippingLocation = ShippingLocation::createFromAddress($customerAddress);
+        
+        return $salesChannelContext = new SalesChannelContext($context,
+                                                                '',
+                                                                $salesChannel,
+                                                                $currency,
+                                                                $currentCustomerGroup,
+                                                                $currentCustomerGroup,
+                                                                $taxes,
+                                                                $paymentMethod,
+                                                                $shippingMethod,
+                                                                $shippingLocation,
+                                                                $customerEntity,
+                                                                []
+                                                            );
     }
 
     private function extractAppointmentData($content)
@@ -153,47 +210,38 @@ class CartEventSubscriber implements EventSubscriberInterface
         return $appointmentData;
     }
 
-    public function onCartConvertedEvent(CartConvertedEvent $event): void
+    private function generateOrder(string $productNumber, string $customerID, $quantity) :string
     {
-        // $cart = $event->getCart();
-        // /** @var LineItemCollection $lineItems */
-        // $lineItems = $cart->getLineItems();
-        // /** @var Request $request */
-        // $request = $this->requestStack->getCurrentRequest();
-        // $content = $request->getContent();
-        // $contentExploded = explode('&',$content);
+        $myCart = new Cart('appointmentOrder','appointment');
+        /** @var CustomerEntity $customerEntity */
+        $customerEntity = $this->getFilteredEntitiesOfRepository($this->container->get('customer.repository'),
+                                                                'id',
+                                                                $customerID, 
+                                                                Context::createDefaultContext()
+                                                                )->first();
 
-        // foreach($contentExploded as $contentExplodedItem) {
-        //     $contentExplodedItemExploded = explode('-',$contentExplodedItem);
-            
-        //     if($contentExplodedItemExploded[0] === 'appointmentDate'){
-        //         $appointmentID = explode('=',$contentExplodedItemExploded[1]);
-        //         if($appointmentID[1] == '') { // lineitem without date
-        //             continue;
-        //         }
-        //         else{
-        //             $lineItems->remove($appointmentID[0]);
-        //         }
-        //         $appointmentID = $appointmentID[0];
-        //         $appointmentDate = explode('=',$contentExplodedItemExploded[1]);
-                // $appointmentDate = $appointmentDate[1] . '-' . $contentExplodedItemExploded[2] . '-' . $contentExplodedItemExploded[3];
-        //         /** @var LineItem $lineItem */
-        //         foreach($lineItems as $lineItem) {
-        //             $lineItemID = $lineItem->getId();
-                    
-        //             if($lineItemID === $appointmentID){
+        /** @var ProductEntity $productEntity */
+        $productEntity = $this->getFilteredEntitiesOfRepository($this->container->get('product.repository'),
+                                                                'productNumber',
+                                                                $productNumber,
+                                                                Context::createDefaultContext()
+                                                                )->first();
 
-        //                 $lineItem->setPayloadValue('customFields',['appointment_shipment_date' => $appointmentDate]);
-        //                 break;
-        //             }
-        //         }
-        //     }
-        // }
+        $lineItem = new LineItem(Uuid::randomHex(), "product", NULL, 1);
+        $lineItem->setGood(false);
+        $lineItem->setStackable(true);
+        $lineItem->setRemovable(true);
+        $lineItem->setQuantity($quantity);
+        $lineItem->setReferencedId($productEntity->getId());
+        
+        $salesChannelContext = $this->createSalesChannelContext($customerEntity, Context::createDefaultContext());
 
+        $myCart = $this->cartService->add($myCart,$lineItem,$salesChannelContext);
+        $this->cartService->setCart($myCart);
 
-        // $cart = $event->getCart();
-        // /** @var LineItemCollection $lineItems */
-        // $lineItems = $cart->getLineItems();
+        return $this->cartService->order($myCart,$salesChannelContext,null);
+        // $customerName = $customerEntity->getFirstName() . ' ' . $customerEntity->getLastName();
+        // $customerMail = $customerEntity->getEmail();
     }
 
     private function getCustomerID($orderID, $context)

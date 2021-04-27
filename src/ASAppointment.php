@@ -24,8 +24,7 @@ class ASAppointment extends Plugin
 {
     /** @inheritDoc */
     public function install(InstallContext $installContext): void
-    {
-        
+    {  
     }
 
     /** @inheritDoc */
@@ -208,9 +207,9 @@ class ASAppointment extends Plugin
             return;
         }
 
-        $connection = $this->container->get(Connection::class);
+        // $connection = $this->container->get(Connection::class);
 
-        $connection->executeUpdate('DROP TABLE IF EXISTS `as_appointment_line_item`');
+        // $connection->executeUpdate('DROP TABLE IF EXISTS `as_appointment_line_item`');
 
         parent::uninstall($context);
     }

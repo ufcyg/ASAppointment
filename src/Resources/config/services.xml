@@ -5,6 +5,7 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
 
     <services>
+        <!-- // storefront controller -->
         <service id="ASAppointment\Storefront\Controller\AppointmentCartController" public="true">
             <argument type="service" id="Shopware\Core\Checkout\Cart\SalesChannel\CartService"/>
 
@@ -13,12 +14,15 @@
             </call>
         </service>
 
+        <!-- // subscriber -->
         <service id="ASAppointment\Subscriber\CartEventSubscriber">
             <tag name="kernel.event_subscriber"/>
             <tag name="shopware.event_subscriber"/>
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
             <argument type="service" id="request_stack" />
             <argument type="service" id="Shopware\Core\Checkout\Order\SalesChannel\OrderService" />
+            <argument type="service" id="Shopware\Core\Checkout\Cart\SalesChannel\CartService" />
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
             <call method="setContainer">
                 <argument type="service" id="service_container" />
             </call>
@@ -31,18 +35,39 @@
             <tag name="kernel.event_subscriber"/>
         </service>
 
-        <service id="ASAppointment\Core\Content\AppointmentLineItem\AppointmentLineItemDefinition">
-            <tag name="shopware.entity.definition" entity="as_appointment_line_item" />
-        </service>
-
+        <!-- // set appointed orders to open task -->
         <service id="ASAppointment\ScheduledTask\AppointmentOrderTask">
             <tag name="shopware.scheduled.task" />
         </service>
         <service id="ASAppointment\ScheduledTask\AppointmentOrderTaskHandler">
             <argument type="service" id="scheduled_task.repository" />
-            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService" />
             <argument type="service" id="ASMailService\Core\MailServiceHelper" />
-            <argument type="service" id="Shopware\Core\Checkout\Cart\SalesChannel\CartService" />
+            <argument type="service" id="Shopware\Core\Checkout\Order\SalesChannel\OrderService" />
+            <call method="setContainer">
+                <argument type="service" id="service_container" />
+            </call>
+            <tag name="messenger.message_handler" />
+        </service>
+
+        <!-- // update product table task -->
+        <service id="ASAppointment\ScheduledTask\UpdateProductsTask">
+            <tag name="shopware.scheduled.task" />
+        </service>
+        <service id="ASAppointment\ScheduledTask\UpdateProductsTaskHandler">
+            <argument type="service" id="scheduled_task.repository" />
+            <argument type="service" id="Doctrine\DBAL\Connection"/>
+            <call method="setContainer">
+                <argument type="service" id="service_container" />
+            </call>
+            <tag name="messenger.message_handler" />
+        </service>
+
+        <!-- // delete empty orders task -->
+        <service id="ASAppointment\ScheduledTask\DeleteEmptyOrdersTask">
+            <tag name="shopware.scheduled.task" />
+        </service>
+        <service id="ASAppointment\ScheduledTask\DeleteEmptyOrdersTaskHandler">
+            <argument type="service" id="scheduled_task.repository" />
             <call method="setContainer">
                 <argument type="service" id="service_container" />
             </call>
