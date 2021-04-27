@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ASAppointment\ScheduledTask;
 
 use Psr\Container\ContainerInterface;
+use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
@@ -49,6 +50,12 @@ class DeleteEmptyOrdersTaskHandler extends ScheduledTaskHandler
         $searchResult = $this->getFilteredEntitiesOfRepository($this->container->get('order_line_item.repository'), 'orderId', $orderID, $context);
         if (count($searchResult) == 0)
             $this->container->get('order.repository')->delete([['id' => $orderID]], $context);
+        if (count($searchResult) == 1) {
+            /** @var OrderLineItemEntity $lineItem */
+            $lineItem = $searchResult->first();
+            if ($lineItem->getIdentifier() == 'INTERNAL_DISCOUNT')
+                $this->container->get('order.repository')->delete([['id' => $orderID]], $context);
+        }
     }
 
     public function getAllEntitiesOfRepository(EntityRepositoryInterface $repository, Context $context): ?EntitySearchResult
