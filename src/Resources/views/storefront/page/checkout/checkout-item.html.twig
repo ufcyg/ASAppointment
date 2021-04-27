@@ -13,11 +13,11 @@
 
         {% block as_appointmentorder_appointment_date %}
             <input type="date"
-                    min="{{ "now"|date("Y-m-d") }}"
+                    min="{{ "now + 7 days"|date("Y-m-d") }}"
                     name="appointmentDate-{{lineItem.id}}"
                     id="appointmentDate-{{lineItem.id}}"
                     form="confirmOrderForm"
-                    onfocus="{{ "now"|date("m/d/Y") }}"
+                    onfocus="{{ "now + 7 days"|date("m/d/Y") }}"
                     data-datepicker="true" />
             {# {{ dump(lineItem) }} #}
         {% endblock %}
