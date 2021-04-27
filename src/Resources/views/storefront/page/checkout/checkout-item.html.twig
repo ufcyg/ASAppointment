@@ -2,15 +2,14 @@
 {% block page_checkout_item_container %}
     <template data-a-s-appointment></template>
     {% if shopware.config.ASAppointment.config.appointmentOrdersActive == true %}
-        {% block as_appointmentorder_is_appointment %}
+        {# {% block as_appointmentorder_is_appointment %}
             <input type="checkbox"
                     title="Check for appointment order"
                     class=""
                     id="appointment"
                     form="confirmOrderForm"
                     name="appointment"/>
-        {% endblock %}
-
+        {% endblock %} #}
         {% block as_appointmentorder_appointment_date %}
             {% set minimumAppointmentDate = shopware.config.ASAppointment.config.minimumAppointmentDate %}
             {% set minimumAppointmentDateString = 'now + ' ~ minimumAppointmentDate ~ ' days' %}
@@ -21,7 +20,7 @@
                     form="confirmOrderForm"
                     onfocus="{{ minimumAppointmentDateString|date("Y-m-d") }}"
                     data-datepicker="true" />
-            {# {{ dump(lineItem) }} #}
+             Für Terminbestellung Datum auswählen
         {% endblock %}
     {% endif %}
     {{ parent() }}
