@@ -6,10 +6,11 @@ namespace ASAppointment\ScheduledTask;
 
 use Symfony\Component\HttpFoundation\ParameterBag;
 use ASMailService\Core\MailServiceHelper;
-use DateTime;
 use DateTimeImmutable;
 use Psr\Container\ContainerInterface;
 use Shopware\Core\Checkout\Cart\SalesChannel\CartService;
+use Shopware\Core\Checkout\Customer\CustomerEntity;
+use Shopware\Core\Checkout\Order\Aggregate\OrderCustomer\OrderCustomerEntity;
 use Shopware\Core\Checkout\Order\Aggregate\OrderLineItem\OrderLineItemEntity;
 use Shopware\Core\Checkout\Order\OrderEntity;
 use Shopware\Core\Checkout\Order\SalesChannel\OrderService;
@@ -75,9 +76,11 @@ class AppointmentOrderTaskHandler extends ScheduledTaskHandler
             $appointedState->getId(),
             Context::createDefaultContext()
         );
-
+        if (count($appointedOrders) == 0)
+            return;
         /** @var OrderEntity $appointedOrder */
         foreach ($appointedOrders as $orderID => $orderEntity) {
+            /** @var DateTimeImmutable $orderDateTime */
             $orderDateTime = $orderEntity->getOrderDateTime();
             /** @var OrderLineItemEntity $lineItem */
             $lineItem = $this->getFilteredEntitiesOfRepository(
@@ -109,6 +112,7 @@ class AppointmentOrderTaskHandler extends ScheduledTaskHandler
                     new ParameterBag(),
                     $context
                 );
+                $this->sendNotification($orderEntity, $orderDateTime->format('d-m-Y'));
             }
         }
     }
@@ -123,13 +127,28 @@ class AppointmentOrderTaskHandler extends ScheduledTaskHandler
         return false;
     }
 
-
-
-
-
-
-
-    
+    private function sendNotification(OrderEntity $order, string $appointmentDate)
+    {
+        $context = Context::createDefaultContext();
+        $customerOrderNumber = $order->getOrderNumber();
+        // get customer
+        /** @var OrderCustomerEntity $orderCustomer */
+        $orderCustomer = $this->getFilteredEntitiesOfRepository($this->container->get('order_customer.repository'), 'orderId', $order->getId(), $context)->first();
+        /** @var CustomerEntity $customer */
+        $customer = $this->getFilteredEntitiesOfRepository($this->container->get('customer.repository'), 'id', $orderCustomer->getCustomerId(), $context)->first();
+        $customerMail = $customer->getEmail();
+        $customerName = $customer->getFirstName() . ' ' . $customer->getLastName();
+        $notification = "Hallo {$customerName},<br><br> Ihre Bestellung mit der Nummer {$customerOrderNumber} wird nun bearbeitet und sollte spätestens bis zum {$appointmentDate} bei Ihnen ankommen.<br><br>Mit freundlichen Grüßen<br>Webshop Support Team";
+        $this->mailService->sendMyMail(
+            [$customerMail => $customerName],
+            null,
+            'ZPMV Terminbestellungen',
+            'Ihre Terminbestellung wird nun bearbeitet',
+            $notification,
+            $notification,
+            ['']
+        );
+    }
 
     public function getAllEntitiesOfRepository(EntityRepositoryInterface $repository, Context $context): ?EntitySearchResult
     {
