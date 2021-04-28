@@ -83,8 +83,8 @@ class AppointmentOrderTaskHandler extends ScheduledTaskHandler
             /** @var OrderLineItemEntity $lineItem */
             $lineItem = null;
 
-            foreach($this->getFilteredEntitiesOfRepository($this->container->get('order_line_item.repository'), 'orderId', $orderID, $context) as $orderLineItemID => $orderLineItem){
-                if($orderLineItem->getIdentifier() != 'INTERNAL_DISCOUNT'){
+            foreach ($this->getFilteredEntitiesOfRepository($this->container->get('order_line_item.repository'), 'orderId', $orderID, $context) as $orderLineItemID => $orderLineItem) {
+                if ($orderLineItem->getIdentifier() != 'INTERNAL_DISCOUNT') {
                     $lineItem = $orderLineItem;
                 }
             }
