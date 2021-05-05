@@ -27,14 +27,16 @@
     {{ parent() }}
 {% endblock %}
 
-{% block page_checkout_item_remove %}
+{% block page_checkout_item_remove_submit %}
     {{ parent() }}
-    {% set appointmentConfig = config('ASAppointment') %}
-    {% if appointmentConfig.config.appointmentOrdersActive == true %}
-        <div class "row col-md-2">
-            <a class="btn btn-light btn-sm" href="{{ path("frontend.checkout.addAppointmentLineItem", { 'lineItemId': lineItem.id} ) }}" >
-                +
-            </a>
-        </div>
-    {% endif %}
+    {% block page_checkout_item_appointment_add_submit %}
+        {% set appointmentConfig = config('ASAppointment') %}
+        {% if appointmentConfig.config.appointmentOrdersActive == true %}
+            <div class "row col-md-2">
+                <a class="btn btn-light btn-sm" href="{{ path("frontend.checkout.addAppointmentLineItem", { 'lineItemId': lineItem.id} ) }}" >
+                    +
+                </a>
+            </div>
+        {% endif %}
+    {% endblock %}
 {% endblock %}
