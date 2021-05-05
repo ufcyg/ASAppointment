@@ -1,7 +1,8 @@
 {% sw_extends '@Storefront/storefront/page/checkout/checkout-item.html.twig' %}
 {% block page_checkout_item_container %}
+    {% set appointmentConfig = config('ASAppointment') %}
     <template data-a-s-appointment></template>
-    {% if shopware.config.ASAppointment.config.appointmentOrdersActive == true %}
+    {% if appointmentConfig.config.appointmentOrdersActive == true %}
         {# {% block as_appointmentorder_is_appointment %}
             <input type="checkbox"
                     title="Check for appointment order"
@@ -11,7 +12,7 @@
                     name="appointment"/>
         {% endblock %} #}
         {% block as_appointmentorder_appointment_date %}
-            {% set minimumAppointmentDate = shopware.config.ASAppointment.config.minimumAppointmentDate %}
+            {% set minimumAppointmentDate = appointmentConfig.config.minimumAppointmentDate %}
             {% set minimumAppointmentDateString = 'now + ' ~ minimumAppointmentDate ~ ' days' %}
             <input type="date"
                     min="{{ minimumAppointmentDateString|date("Y-m-d") }}"
@@ -28,7 +29,8 @@
 
 {% block page_checkout_item_remove %}
     {{ parent() }}
-    {% if shopware.config.ASAppointment.config.appointmentOrdersActive == true %}
+    {% set appointmentConfig = config('ASAppointment') %}
+    {% if appointmentConfig.config.appointmentOrdersActive == true %}
         <div class "row col-md-2">
             <a class="btn btn-light btn-sm" href="{{ path("frontend.checkout.addAppointmentLineItem", { 'lineItemId': lineItem.id} ) }}" >
                 +
