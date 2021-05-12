@@ -83,8 +83,6 @@ class OrderStateTransitionSubscriber implements EventSubscriberInterface
             $this->updateAvailableStockAndSales($ids, $event->getContext());
 
             $this->updateAvailableFlag($ids, $event->getContext());
-
-            $this->clearCache($ids);
         } else if ($event->getFromPlace()->getTechnicalName() === AppointmentOrderStates::STATE_APPOINTED && $event->getToPlace()->getTechnicalName() != AppointmentOrderStates::STATE_APPOINTMENT_CANCELLED) {
             $products = $this->getProductsOfOrder($event->getEntityId());
 
@@ -93,8 +91,6 @@ class OrderStateTransitionSubscriber implements EventSubscriberInterface
             $this->updateAvailableStockAndSales($ids, $event->getContext());
 
             $this->updateAvailableFlag($ids, $event->getContext());
-
-            $this->clearCache($ids);
         }
     }
 
@@ -109,8 +105,6 @@ class OrderStateTransitionSubscriber implements EventSubscriberInterface
         $this->updateAvailableStockAndSales($ids, $event->getContext());
 
         $this->updateAvailableFlag($ids, $event->getContext());
-
-        $this->clearCache($ids);
     }
 
     private function decreaseStock(StateMachineTransitionEvent $event): void
@@ -124,8 +118,6 @@ class OrderStateTransitionSubscriber implements EventSubscriberInterface
         $this->updateAvailableStockAndSales($ids, $event->getContext());
 
         $this->updateAvailableFlag($ids, $event->getContext());
-
-        $this->clearCache($ids);
     }
 
     private function getProductsOfOrder(string $orderId): array
@@ -280,20 +272,5 @@ GROUP BY product_id;
                 ['ids' => Connection::PARAM_STR_ARRAY]
             );
         });
-    }
-
-    private function clearCache(array $ids): void
-    {
-        $tags = [];
-        foreach ($ids as $id) {
-            $tags[] = $this->cacheKeyGenerator->getEntityTag($id, $this->definition->getEntityName());
-        }
-
-        $tags[] = $this->cacheKeyGenerator->getFieldTag($this->definition, 'id');
-        $tags[] = $this->cacheKeyGenerator->getFieldTag($this->definition, 'available');
-        $tags[] = $this->cacheKeyGenerator->getFieldTag($this->definition, 'availableStock');
-        $tags[] = $this->cacheKeyGenerator->getFieldTag($this->definition, 'stock');
-
-        $this->cache->invalidateTags($tags);
     }
 }

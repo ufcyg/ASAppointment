@@ -23,10 +23,12 @@ use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepositoryInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityWriteResult;
 use Shopware\Core\Framework\DataAbstractionLayer\Event\EntityWrittenEvent;
+use Shopware\Core\Framework\DataAbstractionLayer\Pricing\CashRoundingConfig;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\EntitySearchResult;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\Uuid\Uuid;
+use Shopware\Core\Framework\Validation\DataBag\RequestDataBag;
 use Shopware\Core\System\SalesChannel\SalesChannelContext;
 use Shopware\Core\System\SalesChannel\SalesChannelEntity;
 use Shopware\Core\System\SystemConfig\SystemConfigService;
@@ -154,7 +156,7 @@ class CartEventSubscriber implements EventSubscriberInterface
         /** @var SalesChannelEntity $salesChannel */
         $salesChannel = $this->getFilteredEntitiesOfRepository($this->container->get('sales_channel.repository'), 'id', $salesChannelId, $context)->first();
 
-        $currency = $this->getAllEntitiesOfRepository($this->container->get('currency.repository'), $context)->first();
+        $currencyEntity = $this->getAllEntitiesOfRepository($this->container->get('currency.repository'), $context)->first();
         $currentCustomerGroup = $this->getFilteredEntitiesOfRepository($this->container->get('customer_group.repository'), 'id', $customerEntity->getGroupId(), $context)->first();
         /** @var TaxCollection $taxes */
         $taxes = $this->getAllEntitiesOfRepository($this->container->get('tax.repository'), $context)->getEntities();
@@ -173,12 +175,14 @@ class CartEventSubscriber implements EventSubscriberInterface
         $country = $this->getFilteredEntitiesOfRepository($this->container->get('country.repository'), 'id', $customerAddress->getCountryId(), $context)->first();
         $customerAddress->setCountry($country);
         $shippingLocation = ShippingLocation::createFromAddress($customerAddress);
-
-        return $salesChannelContext = new SalesChannelContext(
+        /** @var CashRoundingConfig $itemRounding */
+        $itemRounding = new CashRoundingConfig(2, 0.01, true);
+        $salesChannelContext = new SalesChannelContext(
             $context,
             '',
+            null,
             $salesChannel,
-            $currency,
+            $currencyEntity,
             $currentCustomerGroup,
             $currentCustomerGroup,
             $taxes,
@@ -186,8 +190,11 @@ class CartEventSubscriber implements EventSubscriberInterface
             $shippingMethod,
             $shippingLocation,
             $customerEntity,
+            $itemRounding,
+            $itemRounding,
             []
         );
+        return $salesChannelContext;
     }
 
     private function extractAppointmentData($content)
@@ -241,8 +248,7 @@ class CartEventSubscriber implements EventSubscriberInterface
 
         $myCart = $this->cartService->add($myCart, $lineItem, $salesChannelContext);
         $this->cartService->setCart($myCart);
-
-        return $this->cartService->order($myCart, $salesChannelContext, null);
+        return $this->cartService->order($myCart, $salesChannelContext, new RequestDataBag());
         // $customerName = $customerEntity->getFirstName() . ' ' . $customerEntity->getLastName();
         // $customerMail = $customerEntity->getEmail();
     }
